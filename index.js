@@ -286,11 +286,6 @@ function Fight(data) {
           pods.mainPod.joinedPlayer += i;
         } else {
           if (item.totalbet < pods.mainPod.call) {
-            const newMainPod = {
-              call: item.totalbet,
-              pod: item.totalbet * (pods.mainPod.joinedPlayer.length + 1),
-              joinedPlayer: pods.mainPod.joinedPlayer + i,
-            };
             const newSidePod = {
               call: pods.mainPod.call - item.totalbet,
               pod:
@@ -298,13 +293,18 @@ function Fight(data) {
                 pods.mainPod.joinedPlayer.length,
               joinedPlayer: pods.mainPod.joinedPlayer,
             };
+            const newMainPod = {
+              call: item.totalbet,
+              pod: pods.mainPod.pod - newSidePod.pod + item.totalbet,
+              joinedPlayer: pods.mainPod.joinedPlayer + i,
+            };
             pods.mainPod = newMainPod;
             pods.sidePods.unshift(newSidePod);
           } else {
             let bet = item.totalbet;
             pods.mainPod.pod += pods.mainPod.call;
-            bet -= pods.mainPod.call;
             pods.mainPod.joinedPlayer += i;
+            bet -= pods.mainPod.call;
             for (let j = 0; j < pods.sidePods.length; j++) {
               const sidePod = pods.sidePods[j];
               if (sidePod.call <= bet) {
@@ -315,19 +315,16 @@ function Fight(data) {
                   break;
                 }
               } else {
-                const newSidePod1 = {
-                  call: bet,
-                  pod: bet * (sidePod.joinedPlayer.length + 1),
-                  joinedPlayer: sidePod.joinedPlayer + i,
-                };
-                const newSidePod2 = {
+                const newSidePod = {
                   call: sidePod.call - bet,
                   pod: (sidePod.call - bet) * sidePod.joinedPlayer.length,
                   joinedPlayer: sidePod.joinedPlayer,
                 };
-                pods.sidePods[j] = newSidePod1;
-                pods.sidePods.splice(j + 1, 0, newSidePod2);
+                sidePod.call = bet;
+                sidePod.pod = sidePod.pod - newSidePod.pod + bet;
+                sidePod, (joinedPlayer = sidePod.joinedPlayer + i);
                 bet = 0;
+                pods.sidePods.splice(j + 1, 0, newSidePod);
                 break;
               }
             }
@@ -345,6 +342,8 @@ function Fight(data) {
         pods.mainPod.pod += item.totalbet;
         pods.mainPod.joinedPlayer += i;
       }
+    } else if (item.totalbet !== 0) {
+      pods.mainPod.pod += item.totalbet;
     }
   }
   const players = data.data;
