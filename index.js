@@ -322,11 +322,12 @@ function Fight(data) {
                 };
                 const newSidePod2 = {
                   call: sidePod.call - bet,
-                  pod: (sidePod.call - bet) * sidePod.joinedPlayer,
+                  pod: (sidePod.call - bet) * sidePod.joinedPlayer.length,
                   joinedPlayer: sidePod.joinedPlayer,
                 };
                 pods.sidePods[j] = newSidePod1;
                 pods.sidePods.splice(j + 1, 0, newSidePod2);
+                bet = 0;
                 break;
               }
             }
