@@ -284,9 +284,8 @@ function Analyze(targetCards) {
     return `HighCard,0${HighCard}`;
   }
 }
-function Fight(data) {
+function Pod(data) {
   const players = data.data;
-  const dealer = data.dealer;
   const pods = {
     mainPod: { call: 0, pod: 0, joinedPlayer: "" },
     sidePods: [],
@@ -358,12 +357,12 @@ function Fight(data) {
       }
     }
   }
-  if (
-    pods.sidePods.length > 0 &&
-    pods.sidePods[pods.sidePods.length - 1].joinedPlayer.length == 1
-  ) {
-    pods.sidePods.pop();
-  }
+  return pods;
+}
+function Fight(data, prizeonly) {
+  const players = data.data;
+  const dealer = data.dealer;
+  const pods = Pod(data);
   const result = JSON.parse(
     `[${'{"prize":0,"text":""},'.repeat(players.length).slice(0, -1)}]`
   );
@@ -422,7 +421,11 @@ function Fight(data) {
   }
   let ans = "";
   for (let i = 0; i < players.length; i++) {
-    ans += `${result[i].prize} WIN!${result[i].text},`;
+    if (prizeonly) {
+      ans += `${result[i].prize},`;
+    } else {
+      ans += `${result[i].prize} WIN!${result[i].text},`;
+    }
   }
   return ans.slice(0, -1);
 }
@@ -446,7 +449,16 @@ app.get("/analyze", (req, res) => {
   res.send(ans);
 });
 app.post("/fight", (req, res) => {
-  const ans = Fight(req.body);
+  const prizeonly = req.query.prizeonly === "true";
+  const ans = Fight(req.body, prizeonly);
+  res.send(ans);
+});
+app.post("/pod", (req, res) => {
+  const pods = Pod(req.body);
+  let ans = `MainPod ${pods.mainPod.pod}`;
+  for (const [index, sidePod] of Object.entries(pods.sidePods)) {
+    ans += `\nSidePod${index} ${sidePod.pod}`;
+  }
   res.send(ans);
 });
 
