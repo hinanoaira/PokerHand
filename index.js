@@ -368,6 +368,7 @@ function Fight(data, prizeonly) {
   );
   const mainPod = JSON.parse(JSON.stringify(pods.mainPod));
   const sidePods = JSON.parse(JSON.stringify(pods.sidePods));
+  let sidePodOffset = 0;
   while (mainPod.pod !== 0 || sidePods.length !== 0) {
     let topPower = 0;
     let topPlayers = "";
@@ -402,9 +403,9 @@ function Fight(data, prizeonly) {
             }
             const prize = Math.ceil(sidePod.pod / count);
             result[i].prize += prize;
-            result[
-              i
-            ].text += `\nSidePod${index} ${pods.sidePods[index].pod} > ${prize}`;
+            result[i].text += `\nSidePod${
+              parseInt(index) + sidePodOffset + 1
+            } ${pods.sidePods[index].pod} > ${prize}`;
             sidePod.pod -= prize;
           }
         }
@@ -415,6 +416,7 @@ function Fight(data, prizeonly) {
         if (sidePods[j].pod === 0) {
           sidePods.splice(j, 1);
           pods.sidePods.splice(j, 1);
+          sidePodOffset++;
         }
       }
     }
@@ -457,7 +459,7 @@ app.post("/pod", (req, res) => {
   const pods = Pod(req.body);
   let ans = `MainPod ${pods.mainPod.pod}`;
   for (const [index, sidePod] of Object.entries(pods.sidePods)) {
-    ans += `\nSidePod${index} ${sidePod.pod}`;
+    ans += `\nSidePod${parseInt(index) + 1} ${sidePod.pod}`;
   }
   res.send(ans);
 });
