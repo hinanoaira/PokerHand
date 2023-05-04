@@ -303,7 +303,7 @@ function Pod(data) {
         continue;
       }
       if (pods.mainPod.call === 0) {
-        pods.mainPod.pod = item.totalbet;
+        pods.mainPod.pod += item.totalbet;
         pods.mainPod.call = item.totalbet;
         pods.mainPod.joinedPlayer += i;
         continue;
