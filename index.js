@@ -335,13 +335,13 @@ function Pod(data) {
             break;
           }
         } else {
-          pods.sidePods.splice(index + 1, 0, {
+          pods.sidePods.splice(parseInt(index) + 1, 0, {
             call: sidePod.call - bet,
             pod: sidePod.call - bet * sidePod.joinedPlayer.length,
             joinedPlayer: sidePod.joinedPlayer,
           });
           sidePod.call = bet;
-          sidePod.pod -= pods.sidePods[index + 1].pod;
+          sidePod.pod -= pods.sidePods[parseInt(index) + 1].pod;
           sidePod.pod += bet;
           sidePod.joinedPlayer = sidePod.joinedPlayer + i;
           bet = 0;
