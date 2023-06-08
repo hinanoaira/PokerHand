@@ -137,7 +137,7 @@ function IsFullHouse(targetCards) {
         if (numbers[numberPower[12 - i]] >= 3) {
           ans += numberPower[12 - i].repeat(3);
           numbers[numberPower[12 - i]] -= 3;
-          i = 0;
+          i = -1;
         }
       } else {
         if (numbers[numberPower[12 - i]] >= 2) {
