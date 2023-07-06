@@ -290,7 +290,7 @@ function Pod(data) {
     mainPod: { call: 0, pod: 0, joinedPlayer: "" },
     sidePods: [],
   };
-  const pods.mainPod.pod += data.deadPod;
+  pods.mainPod.pod += data.deadPod;
   for (let i = 0; i < players.length; i++) {
     const item = players[i];
     if (item.totalbet !== 0) {
