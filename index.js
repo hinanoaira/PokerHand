@@ -284,93 +284,20 @@ function Analyze(targetCards) {
     return `HighCard,0${HighCard}`;
   }
 }
-function Pod(data) {
-  const players = data.data;
-  const pods = {
-    mainPod: { call: 0, pod: 0, joinedPlayer: "" },
-    sidePods: [],
-  };
-  pods.mainPod.pod += data.deadPod;
-  for (let i = 0; i < players.length; i++) {
-    const item = players[i];
-    if (item.totalbet !== 0) {
-      if (item.power === 0) {
-        pods.mainPod.pod += item.totalbet;
-        continue;
-      }
-      if (pods.mainPod.call === item.totalbet) {
-        pods.mainPod.pod += item.totalbet;
-        pods.mainPod.joinedPlayer += i;
-        continue;
-      }
-      if (pods.mainPod.call === 0) {
-        pods.mainPod.pod += item.totalbet;
-        pods.mainPod.call = item.totalbet;
-        pods.mainPod.joinedPlayer += i;
-        continue;
-      }
-      if (pods.mainPod.call > item.totalbet) {
-        pods.sidePods.unshift({
-          call: pods.mainPod.call - item.totalbet,
-          pod:
-            (pods.mainPod.call - item.totalbet) *
-            pods.mainPod.joinedPlayer.length,
-          joinedPlayer: pods.mainPod.joinedPlayer,
-        });
-        pods.mainPod.call = item.totalbet;
-        pods.mainPod.pods -= pods.sidePods[0].pod;
-        pods.mainPod.pods += item.totalbet;
-        pods.mainPod.joinedPlayer += i;
-        continue;
-      }
-      let bet = item.totalbet;
-      pods.mainPod.pod += pods.mainPod.call;
-      pods.mainPod.joinedPlayer += i;
-      bet -= pods.mainPod.call;
-      for (const [index, sidePod] of Object.entries(pods.sidePods)) {
-        if (sidePod.call <= bet) {
-          sidePod.pod += sidePod.call;
-          sidePod.joinedPlayer += i;
-          bet -= sidePod.call;
-          if (bet === 0) {
-            break;
-          }
-        } else {
-          pods.sidePods.splice(parseInt(index) + 1, 0, {
-            call: sidePod.call - bet,
-            pod: sidePod.call - bet * sidePod.joinedPlayer.length,
-            joinedPlayer: sidePod.joinedPlayer,
-          });
-          sidePod.call = bet;
-          sidePod.pod -= pods.sidePods[parseInt(index) + 1].pod;
-          sidePod.pod += bet;
-          sidePod.joinedPlayer = sidePod.joinedPlayer + i;
-          bet = 0;
-          break;
-        }
-      }
-      if (bet !== 0) {
-        pods.sidePods.push({
-          call: bet,
-          pod: bet,
-          joinedPlayer: `${i}`,
-        });
-      }
-    }
-  }
-  return pods;
-}
+
 function Fight(data, prizeonly) {
   const players = data.data;
   const dealer = data.dealer;
-  const pods = Pod(data);
+  const pot = data.pot;
   const result = JSON.parse(
     `[${'{"prize":0,"text":""},'.repeat(players.length).slice(0, -1)}]`
   );
-  const mainPod = JSON.parse(JSON.stringify(pods.mainPod));
-  const sidePods = JSON.parse(JSON.stringify(pods.sidePods));
-  let sidePodOffset = 0;
-  while (mainPod.pod !== 0 || sidePods.length !== 0) {
+  let playerPot = 0;
+  for (let player of players) {
+    playerPot += player.totalbet;
+  }
+  let deadPot = pot - playerPot;
+  while (pot !== 0) {
     let topPower = 0;
     let topPlayers = "";
     for (let i = 0; i < players.length; i++) {
@@ -388,49 +315,28 @@ function Fight(data, prizeonly) {
       i = (i + 1) % players.length
     ) {
       if (players[i].power === topPower) {
-        if (mainPod.pod !== 0) {
-          const prize = Math.ceil(mainPod.pod / topPlayers.length);
-          result[i].prize += prize;
-          result[i].text += `\nMainPod ${pods.mainPod.pod} > ${prize}`;
-          mainPod.pod -= prize;
-        }
-        for (const [index, sidePod] of Object.entries(sidePods)) {
-          if (sidePod.joinedPlayer.includes(i)) {
-            let count = 0;
-            for (const player of topPlayers) {
-              if (sidePod.joinedPlayer.includes(player)) {
-                count++;
-              }
-            }
-            const prize = Math.ceil(sidePod.pod / count);
-            result[i].prize += prize;
-            result[i].text += `\nSidePod${
-              parseInt(index) + sidePodOffset + 1
-            } ${pods.sidePods[index].pod} > ${prize}`;
-            sidePod.pod -= prize;
+        let prizeFromDeadPot = Math.ceil(deadPot / topPlayers.length);
+        let prizeFromPlayerPot = 0;
+        for (let player of players) {
+          if (player.totalbet > players[i].totalbet) {
+            let prize = Math.ceil(players[i].totalbet / topPlayers.length);
+            prizeFromPlayerPot += prize;
+            player.totalbet -= prize;
+          } else {
+            let prize = Math.ceil(player.totalbet / topPlayers.length);
+            prizeFromPlayerPot += prize;
+            player.totalbet -= prize;
           }
         }
+        result[i].prize += prizeFromDeadPot;
+        result[i].prize += prizeFromPlayerPot;
+        deadPot -= prizeFromDeadPot;
+        pot -= prizeFromDeadPot + prizeFromPlayerPot;
         players[i].power = 0;
         topPlayers = topPlayers.replace(i, "");
       }
-      for (let j = sidePods.length - 1; j >= 0; j--) {
-        if (sidePods[j].pod === 0) {
-          sidePods.splice(j, 1);
-          pods.sidePods.splice(j, 1);
-          sidePodOffset++;
-        }
-      }
     }
   }
-  let ans = "";
-  for (let i = 0; i < players.length; i++) {
-    if (prizeonly) {
-      ans += `${result[i].prize},`;
-    } else {
-      ans += `${result[i].prize} WIN!${result[i].text},`;
-    }
-  }
-  return ans.slice(0, -1);
 }
 
 app.use(
@@ -454,14 +360,6 @@ app.get("/analyze", (req, res) => {
 app.post("/fight", (req, res) => {
   const prizeonly = req.query.prizeonly === "true";
   const ans = Fight(req.body, prizeonly);
-  res.send(ans);
-});
-app.post("/pod", (req, res) => {
-  const pods = Pod(req.body);
-  let ans = `MainPod ${pods.mainPod.pod}`;
-  for (const [index, sidePod] of Object.entries(pods.sidePods)) {
-    ans += `\nSidePod${parseInt(index) + 1} ${sidePod.pod}`;
-  }
   res.send(ans);
 });
 
