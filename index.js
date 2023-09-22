@@ -337,7 +337,16 @@ function Fight(data, prizeonly) {
       }
     }
   }
-  return result;
+
+  let ans = "";
+  for (let i = 0; i < players.length; i++) {
+    if (prizeonly) {
+      ans += `${result[i].prize},`;
+    } else {
+      ans += `${result[i].prize} WIN!${result[i].text},`;
+    }
+  }
+  return ans.slice(0, -1);
 }
 
 app.use(
