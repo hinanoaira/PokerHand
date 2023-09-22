@@ -309,35 +309,54 @@ function Fight(data, prizeonly) {
         topPlayers += i;
       }
     }
+    if (topPower === 0) {
+      return null;
+    }
+    const cals = [];
     for (
-      let i = dealer;
-      topPlayers.length !== 0;
+      let i = (dealer + 1) % players.length;
+      cals.length < players.length;
       i = (i + 1) % players.length
     ) {
-      if (players[i].power === topPower) {
-        let prizeFromDeadPot = Math.ceil(deadPot / topPlayers.length);
-        let prizeFromPlayerPot = 0;
-        for (let player of players) {
-          if (player.totalbet > players[i].totalbet) {
-            let prize = Math.ceil(players[i].totalbet / topPlayers.length);
-            prizeFromPlayerPot += prize;
-            player.totalbet -= prize;
-          } else {
-            let prize = Math.ceil(player.totalbet / topPlayers.length);
-            prizeFromPlayerPot += prize;
-            player.totalbet -= prize;
-          }
+      let flag = false;
+      for (let j = 0; j < cals.length; j++) {
+        if (cals[j].totalbet > players[i].totalbet) {
+          cals.splice(j, 0, { playerId: i, totalbet: players[i].totalbet });
+          flag = true;
+          break;
         }
-        result[i].prize += prizeFromDeadPot;
-        result[i].prize += prizeFromPlayerPot;
-        deadPot -= prizeFromDeadPot;
-        pot -= prizeFromDeadPot + prizeFromPlayerPot;
-        players[i].power = 0;
-        topPlayers = topPlayers.replace(i, "");
+      }
+      if (!flag) {
+        cals.push({ playerId: i, totalbet: players[i].totalbet });
       }
     }
+    for (let cal of cals) {
+      if (players[cal.playerId].power !== topPower) continue;
+      let prizeFromDeadPot = Math.ceil(deadPot / topPlayers.length);
+      let prizeFromPlayerPot = 0;
+      for (let targetCal of cals) {
+        if (cal.totalbet >= targetCal.totalbet) {
+          let prize = Math.ceil(
+            players[targetCal.playerId].totalbet / topPlayers.length
+          );
+          prizeFromPlayerPot += prize;
+          players[targetCal.playerId].totalbet -= prize;
+        } else {
+          let prize = Math.ceil(cal.totalbet / topPlayers.length);
+          prizeFromPlayerPot += prize;
+          players[targetCal.playerId].totalbet -= prize;
+        }
+        if (players[targetCal.playerId].totalbet === 0)
+          players[targetCal.playerId].power = 0;
+      }
+      result[cal.playerId].prize += prizeFromDeadPot;
+      result[cal.playerId].prize += prizeFromPlayerPot;
+      deadPot -= prizeFromDeadPot;
+      pot -= prizeFromDeadPot + prizeFromPlayerPot;
+      players[cal.playerId].power = 0;
+      topPlayers = topPlayers.replace(cal.playerId, "");
+    }
   }
-
   let ans = "";
   for (let i = 0; i < players.length; i++) {
     if (prizeonly) {
@@ -370,7 +389,11 @@ app.get("/analyze", (req, res) => {
 app.post("/fight", (req, res) => {
   const prizeonly = req.query.prizeonly === "true";
   const ans = Fight(req.body, prizeonly);
-  res.send(ans);
+  if (ans) {
+    res.send(ans);
+  } else {
+    res.status(501).send("cal error");
+  }
 });
 
 const port = process.env.PORT || 3000;
