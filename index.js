@@ -337,6 +337,7 @@ function Fight(data, prizeonly) {
       }
     }
   }
+  return result;
 }
 
 app.use(
