@@ -288,7 +288,7 @@ function Analyze(targetCards) {
 function Fight(data, prizeonly) {
   const players = data.data;
   const dealer = data.dealer;
-  const pot = data.pot;
+  let pot = data.pot;
   const result = JSON.parse(
     `[${'{"prize":0,"text":""},'.repeat(players.length).slice(0, -1)}]`
   );
